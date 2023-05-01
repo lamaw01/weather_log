@@ -2,11 +2,9 @@ import mysql.connector
 import requests
 import json
 import pandas
-from datetime import datetime
 from types import SimpleNamespace
-
 from cdo_model import CdoModel
-
+import time
 
 def request_api():
     try:
@@ -46,31 +44,36 @@ def request_api():
         print(e)
 
 def insert_log(cdoModel: CdoModel, jsonData):
-   try:
-      forecastData = json.dumps(jsonData["forecastOverview"])
-      lastReceived=pandas.to_datetime(cdoModel.lastReceived,unit='ms')
-      hiTempDate=pandas.to_datetime(cdoModel.hiTempDate,unit='ms')
-      loTempDate=pandas.to_datetime(cdoModel.loTempDate,unit='ms')
-      gustAt=pandas.to_datetime(cdoModel.gustAt,unit='ms')
-     
-      #connect db
-      mydb = mysql.connector.connect(
-         host="172.21.3.25",
-         database="autocctv",
-         user="autocctv",
-         password="autocctv123"
-      )
-      cursor = mydb.cursor()
-      #insert query
-      sql = "INSERT INTO cdo_weather_logs (windDirection,timeFormat,barometerUnits,windUnits,rainUnits,tempUnits,temperatureFeelLike,temperature,hiTemp,hiTempDate,loTemp,loTempDate,wind,gust,gustAt,humidity,rain,seasonalRain,barometer,barometerTrend,lastReceived,systemLocation,forecastOverview) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
-      val = (cdoModel.windDirection,cdoModel.timeFormat,cdoModel.barometerUnits,cdoModel.windUnits,cdoModel.rainUnits,cdoModel.tempUnits,cdoModel.temperatureFeelLike,cdoModel.temperature,cdoModel.hiTemp,hiTempDate,cdoModel.loTemp,loTempDate,cdoModel.wind,cdoModel.gust,gustAt,cdoModel.humidity,cdoModel.rain,cdoModel.seasonalRain,cdoModel.barometer,cdoModel.barometerTrend,lastReceived,cdoModel.systemLocation,forecastData)
-      cursor.execute(sql, val)
-      mydb.commit()
-      print(cursor.rowcount, "record inserted.")
-      cursor.close()
-      mydb.close()
-   except mysql.connector.Error as err:
-      print('insert_log',err)
+    try:
+        forecastData = json.dumps(jsonData["forecastOverview"])
+        lastReceived = pandas.to_datetime(cdoModel.lastReceived,unit='ms')
+        hiTempDate = pandas.to_datetime(cdoModel.hiTempDate,unit='ms')
+        loTempDate = pandas.to_datetime(cdoModel.loTempDate,unit='ms')
+        gustAt = pandas.to_datetime(cdoModel.gustAt,unit='ms')
+        
+        #connect db
+        mydb = mysql.connector.connect(
+            host="172.21.3.25",
+            database="autocctv",
+            user="autocctv",
+            password="autocctv123"
+        )
+        cursor = mydb.cursor()
+        #insert query
+        sql = "INSERT INTO cdo_weather_logs (windDirection,timeFormat,barometerUnits,windUnits,rainUnits,tempUnits,temperatureFeelLike,temperature,hiTemp,hiTempDate,loTemp,loTempDate,wind,gust,gustAt,humidity,rain,seasonalRain,barometer,barometerTrend,lastReceived,systemLocation,forecastOverview) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+        val = (cdoModel.windDirection,cdoModel.timeFormat,cdoModel.barometerUnits,cdoModel.windUnits,cdoModel.rainUnits,cdoModel.tempUnits,cdoModel.temperatureFeelLike,cdoModel.temperature,cdoModel.hiTemp,hiTempDate,cdoModel.loTemp,loTempDate,cdoModel.wind,cdoModel.gust,gustAt,cdoModel.humidity,cdoModel.rain,cdoModel.seasonalRain,cdoModel.barometer,cdoModel.barometerTrend,lastReceived,cdoModel.systemLocation,forecastData)
+        cursor.execute(sql, val)
+        mydb.commit()
+        print(cursor.rowcount, "record inserted.")
+        cursor.close()
+        mydb.close()
+    except mysql.connector.Error as err:
+        print('insert_log',err)
 
-
-request_api()
+def init():
+    starttime = time.time()
+    while True:
+        request_api()
+        time.sleep(60.0 - ((time.time() - starttime) % 60.0))
+       
+init()
